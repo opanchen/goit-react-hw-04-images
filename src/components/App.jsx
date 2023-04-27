@@ -1,83 +1,73 @@
-import { Component } from "react";
+import { useState, useEffect } from "react";
 import { fetchImages } from "services";
 import { Searchbar, ImageGallery, Loader, Button } from "components";
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import css from "./App.module.css"
 
+export const App = () => {
 
-export class App extends Component {
+const [images, setImages] = useState([]);
+const [query, setQuery] = useState('');
+const [page, setPage] = useState(1);
+const [total, setTotal] = useState(0);
+const [isLoading, setLoading] = useState(false);
+const [error, setError] = useState(null)
 
-state = {
-  images: [],
-  query: '',
-  page: 1,
-  total: '', 
-  shownQuantity: '',
-  isLoading: false,
-  error: null,
-}
-
-async componentDidUpdate(_, prevState) {
-  const { query, page } = this.state;
-
-  if (query !== prevState.query || page !== prevState.page) {
-    this.setState({isLoading: true})
-
+useEffect(() => {
+  if (!query) return;
+  
+  const handleGalleryLoading = async () => {
     try {
-    const data = await fetchImages(query, page);
+      setLoading(true);
 
-    if (data.totalHits === 0) {
-      toast.error('Sorry, there are no images matching your search query. Please try again.')
-    }
+      const data = await fetchImages(query, page);
 
-    if (query !== prevState.query && data.totalHits !== 0) {
-      toast.success(`Hooray! We found ${data.totalHits} images.`);
-    }
+      if (page === 1) {
+        data.totalHits === 0 ? 
+        toast.error('Sorry, there are no images matching your search query. Please try again.') :
+        toast.success(`Hooray! We found ${data.totalHits} images.`);
+      }
 
-    this.setState(({images}) => ({
-      images: [...images, ...data.hits],
-      total: data.totalHits,
-    }));
+      setImages((prevImages) => [...prevImages, ...data.hits]);
+      setTotal(data.totalHits);
+
     } catch (error) {
       console.log(error);
-      this.setState({error});
+      setError(error);
     } finally {
-      this.setState(({images, total}) => {
-        if (total / images.length <= 1) {
-          console.log('...');
-          toast.warning("We're sorry, but you've reached the end of search results.");
-        }
-        return ({
-        shownQuantity: images.length,
-        isLoading: false,
-      })});
+      setLoading(false);
     }
-  }  
+  } 
+
+  handleGalleryLoading();
+
+}, [query, page])
+
+const handleFormSubmit = (searchQuery) => {
+
+  if (searchQuery === query) {
+    toast.warning("You're trying to enter the same search query twice.")
+    return
+  }
+  
+  setImages([]);
+  setPage(1);
+  setQuery(searchQuery);
 }
 
-handleFormSubmit = (query) => {
-  this.setState({
-    images: [],
-    page: 1,
-    query,
-  })
+const handleLoadMore = () => {
+  setPage((prevPage) => prevPage + 1)
 }
 
-handleLoadMore = () => {
-  this.setState(({page}) => ({page: page + 1}));
+if (total / images.length <= 1) {
+  toast.warning("We're sorry, but you've reached the end of search results.");
 }
 
-render() {
-  const { images, isLoading, total, shownQuantity, error } = this.state;
-
-  (total / shownQuantity <= 1) && toast.warning("We're sorry, but you've reached the end of search results.");
-
-
-  return( 
+return( 
   <div className={css.app}>
     <Searchbar
-      onFormSubmit={this.handleFormSubmit}
+      onFormSubmit={handleFormSubmit}
     />
 
     {error && <p>Looks like something went wrong. Please, try again!</p> }
@@ -88,15 +78,15 @@ render() {
 
     {isLoading && <Loader/> }
 
-    {(images.length > 0 && total/shownQuantity > 1 && !isLoading) &&  <Button
-      onLoadMoreClick={this.handleLoadMore}
+    {(images.length > 0  && total/images.length > 1 && !isLoading) &&  
+    <Button
+      onLoadMoreClick={handleLoadMore}
       isLoading={isLoading}
     />}
 
     <ToastContainer 
-    autoClose={5000}
+    autoClose={3000}
     />    
   </div>
   )
-}
 }
