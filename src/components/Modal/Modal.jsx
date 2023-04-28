@@ -1,4 +1,3 @@
-// import { useEffect, useRef } from "react";
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import PropTypes from 'prop-types';
@@ -8,15 +7,7 @@ const modalRoot = document.querySelector('#modal-root');
 
 export const Modal = ({onClose, alt, largeImageURL}) => {
 
-//    const firstRender = useRef(true);
-
     useEffect(() => {
-
-        // if (firstRender.current) {
-        //     firstRender.current = false;
-        //     return;
-        // }
-
         const handleKeyDown = (e) => {
             if (e.code === 'Escape') onClose();
         };
